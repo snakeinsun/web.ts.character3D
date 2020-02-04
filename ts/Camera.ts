@@ -182,8 +182,6 @@ class Line {
         return new Line(p1.x, p1.y, p1.z, p1.x + v.x, p1.y + v.y, p1.z + v.z);
     }
 
-
-
     public x1: number;
     public y1: number;
     public z1: number;
@@ -223,6 +221,17 @@ class Line {
     public toString(): string {
         return "" + this.p1.toString() + " - " + this.p2.toString() + "";
     }
+}
+
+class DrawingLine extends Line {
+    public color: string = "#000000";
+    public width: number = 1;
+}
+
+class DrawingSphere extends Sphere {
+    public color: string = "#000000";
+    public fill: string = "#ff0000";
+    public width: number = 1;
 }
 
 
@@ -307,19 +316,28 @@ class Camera {
     private _drawArea2D: Rectangle2D;
 
     public clearPreviosDrawing(ctx: CanvasRenderingContext2D) {
-        ctx.clearRect(this._drawArea2D.x1, this._drawArea2D.y1, this._drawArea2D.x1 + this._drawArea2D.x2, this._drawArea2D.y1 + this._drawArea2D.y2);
-        this._drawArea2D = new Rectangle2D(0, 0, 0, 0);
+        ctx.clearRect(this._drawArea2D.x1, this._drawArea2D.y1, this._drawArea2D.x2 - this._drawArea2D.x1, this._drawArea2D.y2 - this._drawArea2D.y1);
+
+        /*  ctx.beginPath();
+          ctx.rect(this._drawArea2D.x1, this._drawArea2D.y1, this._drawArea2D.x2 - this._drawArea2D.x1, this._drawArea2D.y2 - this._drawArea2D.y1);
+          ctx.stroke();
+  */
+        this._drawArea2D = null;
     }
 
     private _extendDrawArea(x: number, y: number) {
-        this._drawArea2D.x1 = Math.min(this._drawArea2D.x1, x);
-        this._drawArea2D.y1 = Math.min(this._drawArea2D.y1, y);
+        if (this._drawArea2D == null) {
+            this._drawArea2D = new Rectangle2D(x, y, x + 1, y + 1);
+        }
 
-        this._drawArea2D.x2 = Math.max(this._drawArea2D.x2, x);
-        this._drawArea2D.y2 = Math.max(this._drawArea2D.y2, y);
+        this._drawArea2D.x1 = Math.min(this._drawArea2D.x1 - 1, x);
+        this._drawArea2D.y1 = Math.min(this._drawArea2D.y1 - 1, y);
+
+        this._drawArea2D.x2 = Math.max(this._drawArea2D.x2 + 1, x);
+        this._drawArea2D.y2 = Math.max(this._drawArea2D.y2 + 1, y);
     }
 
-    public projectLines(screenPointX: number, screenPointY: number, ctx: CanvasRenderingContext2D, lines: Array<Line>) {
+    public projectLines(screenPointX: number, screenPointY: number, ctx: CanvasRenderingContext2D, lines: Array<DrawingLine>) {
         lines.forEach(l => {
             let pointOnMonitor1 = this._monitorPlane.getIntersectionWithLine(Line.fromPoints(this._locationPoint, l.p1));
             let pointOnMonitor2 = this._monitorPlane.getIntersectionWithLine(Line.fromPoints(this._locationPoint, l.p2));
@@ -331,6 +349,14 @@ class Camera {
 
             x = x + (screenPointX);
             y = y + (screenPointY);
+
+            if (ctx.strokeStyle != l.color || ctx.lineWidth != l.width) {
+                ctx.stroke();
+                ctx.beginPath();
+            }
+
+            ctx.strokeStyle = l.color;
+            ctx.lineWidth = l.width;
 
             ctx.moveTo(x, y);
 
@@ -347,11 +373,12 @@ class Camera {
 
             ctx.lineTo(x, y);
 
+
             this._extendDrawArea(x, y);
         });
     }
 
-    public projectSpheres(screenPointX: number, screenPointY: number, ctx: CanvasRenderingContext2D, spheres: Array<Sphere>) {
+    public projectSpheres(screenPointX: number, screenPointY: number, ctx: CanvasRenderingContext2D, spheres: Array<DrawingSphere>) {
         spheres.forEach(s => {
             let pointOnMonitor1 = this._monitorPlane.getIntersectionWithLine(Line.fromPoints(this._locationPoint, s));
             let x = this._axis2DH.getDistanceToPoint(pointOnMonitor1);
@@ -371,6 +398,18 @@ class Camera {
 
             x = x + (screenPointX);
             y = y + (screenPointY);
+
+            if (ctx.fillStyle != s.fill || ctx.strokeStyle != s.color || ctx.lineWidth != s.width) {
+                ctx.fill();
+                ctx.stroke();
+                ctx.beginPath();
+            }
+
+            ctx.strokeStyle = s.color;
+            ctx.fillStyle = s.fill;
+            ctx.lineWidth = s.width;
+
+
 
             ctx.moveTo(x, y);
             ctx.arc(x, y, r, 0, Math.PI * 2);

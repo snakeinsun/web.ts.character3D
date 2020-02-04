@@ -11,12 +11,7 @@
         "removeComments": true,
         "noImplicitThis": true,
         "noImplicitAny": true,
-        //
-        // outfile all into one file
-        "outFile": "../script.js"
-        //
-        // outdir - split between files
-        //"outDir": "../js",
-        //"module": "commonjs"
+        "outDir": "./dist/js",
+        "module": "commonjs"
     }
 }
