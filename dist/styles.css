@@ -2,3 +2,9 @@ body{
     margin: 0px;
     overflow: hidden;
 }
+
+#imgBonfire{
+    position: absolute;
+    width: 22px;
+    height: 27px;
+}

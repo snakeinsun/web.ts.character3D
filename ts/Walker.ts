@@ -1,15 +1,16 @@
-type StoppedEvent = () => void;
+type StoppedWalkEvent = () => void;
+type StartedWalkEvent = () => void;
 
 class Walker {
     private _soundTap: HTMLAudioElement = new Audio('./sounds/tap.mp3');
-    private _soundSong: HTMLAudioElement = new Audio('./sounds/song.mp3');
     private _canvas: HTMLCanvasElement;
     private _character: InnerWalker;
     private _size = { w: 50, h: 50 };
     private _stepsize = 2;
-    private _singingTime: Date;
+    private _walking = false;
 
-    public onStopped: StoppedEvent;
+    public onStoppedWalk: StoppedWalkEvent;
+    public onStartedWalk: StoppedWalkEvent;
 
     private characterStateIndex = 0;
     private characterStates = ["stand", "r1", "r2", "r3", "r2", "r1", "stand", "l1", "l2", "l3", "l2", "l1"];
@@ -24,9 +25,6 @@ class Walker {
         this.moveHTMLElement();
         document.body.appendChild(this._canvas);
 
-        this._singingTime = new Date();
-        this._singingTime.setHours(24 * 30 * 300);
-
         this._character = new InnerWalker(this._canvas);
 
         this._character.x = this._canvas.width / 2;
@@ -35,20 +33,9 @@ class Walker {
         document.onkeydown = this.keyDownHandler.bind(this);
     }
 
-    private singStart() {
-        this._soundSong.play();
-    }
-
-    private singStop() {
-        this._soundSong.pause();
-        this._soundSong.currentTime = 0;
-    }
-
     private _desiredPos: { x: number, y: number, id: string };
     private _pos = { x: 0, y: 0 };
     goto(x: number, y: number) {
-
-        this.singStop();
 
         this._desiredPos = {
             x: x,
@@ -62,15 +49,18 @@ class Walker {
     private makeAStep(id: string) {
 
         if (id != this._desiredPos.id) {
-            this._singingTime.setHours(24 * 30 * 100);
             return;
         }
 
         if (Math.abs(this._pos.x - this._desiredPos.x) > 1 || Math.abs(this._pos.y - this._desiredPos.y) > 1) {
 
-            this._singingTime.setHours(24 * 30 * 100);
-
             let diff = this.getXYDiff();
+
+            if (!this._walking)
+                if (this.onStartedWalk)
+                    this.onStartedWalk();
+
+            this._walking = true;
 
             let angle = Math.atan2(diff.y, diff.x);
             angle = 180 * angle / Math.PI;
@@ -102,17 +92,11 @@ class Walker {
         else {
             this._character.currentState = "stand";
 
-            if (this.onStopped)
-                this.onStopped();
+            if (this._walking)
+                if (this.onStoppedWalk)
+                    this.onStoppedWalk();
 
-            this._singingTime = new Date();
-            let delay = Math.floor(Math.random() * 8) + 3;
-            this._singingTime.setSeconds(delay - 1);
-
-            setTimeout(() => {
-                if (new Date() > this._singingTime && this._soundSong.paused)
-                    this.singStart();
-            }, delay * 1000);
+            this._walking = false;
         }
 
     }

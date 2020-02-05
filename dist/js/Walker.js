@@ -2,9 +2,9 @@
 class Walker {
     constructor() {
         this._soundTap = new Audio('./sounds/tap.mp3');
-        this._soundSong = new Audio('./sounds/song.mp3');
         this._size = { w: 50, h: 50 };
         this._stepsize = 2;
+        this._walking = false;
         this.characterStateIndex = 0;
         this.characterStates = ["stand", "r1", "r2", "r3", "r2", "r1", "stand", "l1", "l2", "l3", "l2", "l1"];
         this._pos = { x: 0, y: 0 };
@@ -15,22 +15,12 @@ class Walker {
         this._canvas.style.position = "absolute";
         this.moveHTMLElement();
         document.body.appendChild(this._canvas);
-        this._singingTime = new Date();
-        this._singingTime.setHours(24 * 30 * 300);
         this._character = new InnerWalker(this._canvas);
         this._character.x = this._canvas.width / 2;
         this._character.y = this._canvas.height * 3 / 4;
         document.onkeydown = this.keyDownHandler.bind(this);
     }
-    singStart() {
-        this._soundSong.play();
-    }
-    singStop() {
-        this._soundSong.pause();
-        this._soundSong.currentTime = 0;
-    }
     goto(x, y) {
-        this.singStop();
         this._desiredPos = {
             x: x,
             y: y,
@@ -40,12 +30,14 @@ class Walker {
     }
     makeAStep(id) {
         if (id != this._desiredPos.id) {
-            this._singingTime.setHours(24 * 30 * 100);
             return;
         }
         if (Math.abs(this._pos.x - this._desiredPos.x) > 1 || Math.abs(this._pos.y - this._desiredPos.y) > 1) {
-            this._singingTime.setHours(24 * 30 * 100);
             let diff = this.getXYDiff();
+            if (!this._walking)
+                if (this.onStartedWalk)
+                    this.onStartedWalk();
+            this._walking = true;
             let angle = Math.atan2(diff.y, diff.x);
             angle = 180 * angle / Math.PI;
             diff.x = diff.x * this._stepsize;
@@ -67,15 +59,10 @@ class Walker {
         }
         else {
             this._character.currentState = "stand";
-            if (this.onStopped)
-                this.onStopped();
-            this._singingTime = new Date();
-            let delay = Math.floor(Math.random() * 8) + 3;
-            this._singingTime.setSeconds(delay - 1);
-            setTimeout(() => {
-                if (new Date() > this._singingTime && this._soundSong.paused)
-                    this.singStart();
-            }, delay * 1000);
+            if (this._walking)
+                if (this.onStoppedWalk)
+                    this.onStoppedWalk();
+            this._walking = false;
         }
     }
     turnToPoint(p) {
